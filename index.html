@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRANITA · Audio Analyzer</title>
+<link rel="icon" type="image/png" href="https://vincenzosalvia.wordpress.com/wp-content/uploads/2026/03/granita-audio-analyzer.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  @font-face { font-family:'Futura PT'; src:local('Futura PT Bold'),local('Futura Bold'),local('Futura-Bold'),local('Futura'); font-weight:700; font-style:normal; }
+
+  :root {
+    --bg:#020204;--card:rgba(30,30,30,0.9);--card-hover:rgba(30,30,30,0.95);--card-inner:rgba(42,42,42,0.7);
+    --border:rgba(75,85,99,0.5);--border-light:rgba(75,85,99,0.3);
+    --cyan:#10BADA;--cyan2:#267aaa;--pink:#ff7dab;--amber:#fbbf24;--green:#34d399;--red:#f87171;--orange:#fb923c;
+    --text:#ffffff;--text-sec:#9ca3af;--text-muted:#6b7280;
+    --gray700-30:rgba(55,65,81,0.3);--gray700-50:rgba(55,65,81,0.5);
+    --radius-xl:0.75rem;--radius-2xl:1rem;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:"EB Garamond",Georgia,serif;line-height:1.6;min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-track{background:rgba(30,30,30,0.5);border-radius:10px;}
+  ::-webkit-scrollbar-thumb{background:rgba(100,100,100,0.5);border-radius:10px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(150,150,150,0.5);}
+
+  /* NAV */
+  .navbar{height:4rem;background:var(--card);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  @media(max-width:640px){.navbar{height:3.5rem;padding:0 1rem;}}
+  .nav-brand{display:flex;align-items:center;gap:10px;}
+  .nav-logo{width:28px;height:28px;border-radius:6px;object-fit:contain;}
+  .nav-name{font-family:"Futura PT",Futura,-apple-system,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:17px;}
+  .nav-name span{color:var(--text-muted);font-weight:400;margin-left:4px;}
+
+  /* TABS */
+  .tab-bar{display:flex;gap:0;margin-bottom:2rem;border-bottom:1px solid var(--border-light);}
+  .tab-btn{
+    font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:0.8rem;
+    color:var(--text-muted);background:none;border:none;padding:0.85rem 1.5rem;cursor:pointer;
+    border-bottom:2px solid transparent;transition:all 200ms;position:relative;
+  }
+  .tab-btn:hover{color:var(--text-sec);}
+  .tab-btn.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+  .tab-btn .tab-icon{margin-right:6px;}
+  .tab-panel{display:none;}
+  .tab-panel.on{display:block;}
+
+  /* CONTAINER */
+  .container{max-width:1140px;margin:0 auto;padding:2rem 1.5rem;}
+  @media(max-width:640px){.container{padding:1.5rem 1rem;} .comp-grid{grid-template-columns:1fr!important;} .upload-grid{grid-template-columns:1fr!important;}}
+
+  /* UPLOAD */
+  .upload-single{max-width:500px;margin:0 auto 2rem;}
+  .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem;}
+  .upload-zone{background:var(--card);backdrop-filter:blur(4px);border:1px dashed var(--gray700-50);border-radius:var(--radius-2xl);padding:2rem 1.5rem;text-align:center;cursor:pointer;transition:all 300ms;box-shadow:0 10px 15px -3px rgba(0,0,0,0.3);}
+  .upload-zone:hover{background:var(--card-hover);border-color:var(--cyan);box-shadow:0 20px 25px -5px rgba(0,0,0,0.4);transform:scale(1.02);}
+  .upload-zone.ref:hover{border-color:var(--pink);}
+  .upload-zone.has-file{border-style:solid;border-color:var(--cyan);background:var(--card-hover);}
+  .upload-zone.ref.has-file{border-color:var(--pink);}
+  .upload-zone input{display:none;}
+  .uz-icon{width:48px;height:48px;border-radius:50%;background:rgba(16,186,218,0.12);color:var(--cyan);display:inline-flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:1rem;}
+  .ref .uz-icon{background:rgba(255,125,171,0.12);color:var(--pink);}
+  .uz-label{font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:0.9rem;margin-bottom:0.25rem;}
+  .uz-hint{font-size:0.95rem;color:var(--text-muted);}
+  .uz-fname{font-family:"JetBrains Mono",monospace;font-size:0.8rem;color:var(--cyan);margin-top:0.75rem;word-break:break-all;}
+  .ref .uz-fname{color:var(--pink);}
+
+  /* BUTTONS */
+  .btn{
+    display:block;width:100%;max-width:360px;margin:0 auto 2rem;padding:1rem 2rem;
+    font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:0.85rem;
+    color:white;background:linear-gradient(to right,#10BADA,#267aaa);border:none;border-radius:var(--radius-xl);
+    cursor:pointer;transition:all 300ms;box-shadow:0 10px 15px -3px rgba(0,0,0,0.3);
+  }
+  .btn:hover{background:linear-gradient(to right,#267aaa,#10BADA);box-shadow:0 20px 25px -5px rgba(0,0,0,0.4);transform:scale(1.02);}
+  .btn:disabled{opacity:0.3;cursor:not-allowed;transform:none;box-shadow:none;}
+
+  /* PROGRESS */
+  .progress{max-width:360px;margin:0 auto 2rem;display:none;}
+  .progress.on{display:block;}
+  .pbar{width:100%;height:3px;background:var(--gray700-30);border-radius:10px;overflow:hidden;}
+  .pfill{height:100%;background:linear-gradient(to right,#10BADA,#267aaa);width:0%;transition:width 300ms;}
+  .ptxt{font-family:"JetBrains Mono",monospace;font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:0.5rem;}
+
+  /* ERROR */
+  .error-box{background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.3);border-radius:var(--radius-xl);padding:1rem 1.25rem;color:#f87171;font-size:0.9rem;margin-bottom:1.5rem;display:none;}
+  .error-box.on{display:block;}
+
+  /* SECTIONS */
+  .section{display:none;margin-bottom:2.5rem;}
+  .section.on{display:block;}
+  .section-header{display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--border-light);}
+  .section-dot{width:10px;height:10px;border-radius:50%;background:var(--cyan);flex-shrink:0;}
+  .section-dot.pink{background:var(--pink);}
+  .section-dot.amber{background:var(--amber);}
+  .section-dot.green{background:var(--green);}
+  .section-name{font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:1.1rem;}
+
+  /* METRIC CARDS */
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:1rem;margin-bottom:1.5rem;}
+  .mc{background:var(--card);backdrop-filter:blur(4px);border:1px solid var(--gray700-50);border-radius:var(--radius-2xl);padding:1.25rem;transition:all 300ms;box-shadow:0 10px 15px -3px rgba(0,0,0,0.2);}
+  .mc:hover{background:var(--card-hover);box-shadow:0 20px 25px -5px rgba(0,0,0,0.3);transform:scale(1.02);}
+  .mc-label{font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-size:0.65rem;font-weight:700;color:var(--text-muted);margin-bottom:0.5rem;}
+  .mc-val{font-family:"JetBrains Mono",monospace;font-weight:500;font-size:1.5rem;color:var(--cyan);line-height:1.1;}
+  .mc-val.pink{color:var(--pink);}
+  .mc-unit{font-family:"EB Garamond",Georgia,serif;font-size:0.85rem;color:var(--text-sec);margin-top:0.25rem;}
+
+  /* CHART BOXES */
+  .chart-box{background:var(--card);backdrop-filter:blur(4px);border:1px solid var(--gray700-50);border-radius:var(--radius-2xl);padding:1.5rem;margin-bottom:1rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.2);}
+  .chart-label{font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:1rem;}
+  canvas{width:100%!important;height:auto!important;display:block;}
+  .comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+  .legend{display:flex;gap:1.25rem;margin-bottom:1rem;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:0.9rem;color:var(--text-sec);}
+  .lsw{width:14px;height:3px;border-radius:2px;}
+
+  /* MIX CHECK */
+  .mix-check-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-bottom:1.5rem;}
+  .mix-item{
+    background:var(--card);backdrop-filter:blur(4px);border:1px solid var(--gray700-50);border-radius:var(--radius-2xl);
+    padding:1.25rem;display:flex;align-items:flex-start;gap:14px;transition:all 300ms;box-shadow:0 10px 15px -3px rgba(0,0,0,0.2);
+  }
+  .mix-item:hover{background:var(--card-hover);box-shadow:0 20px 25px -5px rgba(0,0,0,0.3);}
+
+  .mix-light{width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:3px;box-shadow:0 0 8px currentColor;}
+  .mix-light.green{background:var(--green);color:var(--green);}
+  .mix-light.amber{background:var(--amber);color:var(--amber);}
+  .mix-light.red{background:var(--red);color:var(--red);}
+
+  .mix-info{flex:1;min-width:0;}
+  .mix-name{font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-size:0.75rem;font-weight:700;color:var(--text);margin-bottom:0.2rem;}
+  .mix-detail{font-family:"EB Garamond",Georgia,serif;font-size:0.9rem;color:var(--text-sec);line-height:1.5;}
+  .mix-meter{width:100%;height:4px;background:var(--gray700-30);border-radius:2px;margin-top:0.5rem;overflow:hidden;}
+  .mix-meter-fill{height:100%;border-radius:2px;transition:width 500ms;}
+
+  /* OVERALL SCORE */
+  .score-box{
+    background:var(--card);backdrop-filter:blur(4px);border:1px solid var(--gray700-50);border-radius:var(--radius-2xl);
+    padding:2rem;text-align:center;margin-bottom:1.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.2);
+  }
+  .score-label{font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:0.75rem;}
+  .score-value{font-family:"JetBrains Mono",monospace;font-size:3.5rem;font-weight:500;line-height:1;}
+  .score-sub{font-family:"EB Garamond",Georgia,serif;font-size:1rem;color:var(--text-sec);margin-top:0.5rem;}
+
+  /* SUGGESTIONS */
+  .suggestions-box{background:var(--card);backdrop-filter:blur(4px);border:1px solid var(--gray700-50);border-left:3px solid var(--amber);border-radius:0 var(--radius-2xl) var(--radius-2xl) 0;padding:1.5rem;margin-top:1.5rem;box-shadow:0 10px 15px -3px rgba(0,0,0,0.2);}
+  .sugg-title{font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:0.75rem;color:var(--amber);margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+  .sitem{font-family:"EB Garamond",Georgia,serif;font-size:0.95rem;color:var(--text-sec);padding:0.75rem 0;border-bottom:1px solid var(--border-light);line-height:1.6;}
+  .sitem:last-child{border-bottom:none;}
+  .sitem strong{color:var(--text);font-weight:600;}
+
+  /* STAGE SELECTOR */
+  .stage-selector{max-width:500px;margin:0 auto 1.5rem;text-align:center;}
+  .stage-label{font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:0.75rem;}
+  .stage-toggle{display:inline-flex;background:var(--card);border:1px solid var(--gray700-50);border-radius:var(--radius-xl);overflow:hidden;backdrop-filter:blur(4px);}
+  .stage-btn{
+    font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:0.75rem;
+    color:var(--text-muted);background:transparent;border:none;padding:0.7rem 1.5rem;cursor:pointer;transition:all 200ms;
+  }
+  .stage-btn:hover{color:var(--text-sec);}
+  .stage-btn.active{color:#000;background:linear-gradient(to right,#10BADA,#267aaa);box-shadow:0 0 12px rgba(16,186,218,0.25);}
+
+  .footer{text-align:center;margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border-light);font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-size:0.7rem;font-weight:700;color:var(--text-muted);}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand">
+    <img class="nav-logo" src="https://vincenzosalvia.wordpress.com/wp-content/uploads/2026/03/granita-audio-analyzer.png" alt="GRANITA">
+    <span class="nav-name">GRANITA.<span>Audio Analyzer</span></span>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('analyze')"><span class="tab-icon">🎛</span> Analyze</button>
+    <button class="tab-btn" onclick="switchTab('compare')"><span class="tab-icon">⚖</span> Compare</button>
+  </div>
+
+  <!-- ═══════════════════════════════ -->
+  <!-- ANALYZE TAB -->
+  <!-- ═══════════════════════════════ -->
+  <div class="tab-panel on" id="tab-analyze">
+    <div class="error-box" id="errA"></div>
+    <div class="upload-single">
+      <div class="upload-zone" id="aZone" onclick="document.getElementById('aFile').click()">
+        <input type="file" id="aFile" accept="audio/*,.wav,.mp3,.flac,.ogg,.aac,.m4a">
+        <div class="uz-icon">♪</div>
+        <div class="uz-label">Upload Your Track</div>
+        <div class="uz-hint">WAV, MP3, FLAC, OGG — drop or click</div>
+        <div class="uz-fname" id="aName"></div>
+      </div>
+    </div>
+
+    <!-- STAGE SELECTOR -->
+    <div class="stage-selector">
+      <div class="stage-label">What stage is this track?</div>
+      <div class="stage-toggle">
+        <button class="stage-btn active" id="stgMix" onclick="setStage('mix')">Pre-Master Mix</button>
+        <button class="stage-btn" id="stgMaster" onclick="setStage('master')">Mastered</button>
+      </div>
+    </div>
+
+    <button class="btn" id="aBtnGo" disabled>▶ Analyze</button>
+    <div class="progress" id="aProg"><div class="pbar"><div class="pfill" id="aPFill"></div></div><div class="ptxt" id="aPTxt">Decoding...</div></div>
+
+    <!-- Results -->
+    <div class="section" id="aMetricsSec">
+      <div class="section-header"><div class="section-dot"></div><div class="section-name">Track Info</div></div>
+      <div class="metrics" id="aMetrics"></div>
+    </div>
+
+    <div class="section" id="aChartsSec">
+      <div class="chart-box"><div class="chart-label">Frequency Spectrum (Average)</div><canvas id="aSpectrum" height="200"></canvas></div>
+      <div class="chart-box"><div class="chart-label">LUFS Short-Term (3s Windows)</div><canvas id="aLufs" height="150"></canvas></div>
+    </div>
+
+    <!-- MIX CHECK -->
+    <div class="section" id="aMixSec">
+      <div class="section-header"><div class="section-dot green"></div><div class="section-name" id="aMixTitle">Synthwave Mix Check</div></div>
+      <div class="score-box" id="aScoreBox">
+        <div class="score-label">Overall Mix Score</div>
+        <div class="score-value" id="aScore">—</div>
+        <div class="score-sub" id="aScoreSub"></div>
+      </div>
+      <div class="mix-check-grid" id="aMixGrid"></div>
+      <div class="suggestions-box">
+        <div class="sugg-title">⚡ Mix Suggestions</div>
+        <div id="aMixSugg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ -->
+  <!-- COMPARE TAB -->
+  <!-- ═══════════════════════════════ -->
+  <div class="tab-panel" id="tab-compare">
+    <div class="error-box" id="errC"></div>
+    <div class="upload-grid">
+      <div class="upload-zone" id="cMZone" onclick="document.getElementById('cMFile').click()">
+        <input type="file" id="cMFile" accept="audio/*,.wav,.mp3,.flac,.ogg,.aac,.m4a">
+        <div class="uz-icon">♪</div>
+        <div class="uz-label">Your Track</div>
+        <div class="uz-hint">WAV, MP3, FLAC, OGG</div>
+        <div class="uz-fname" id="cMName"></div>
+      </div>
+      <div class="upload-zone ref" id="cRZone" onclick="document.getElementById('cRFile').click()">
+        <input type="file" id="cRFile" accept="audio/*,.wav,.mp3,.flac,.ogg,.aac,.m4a">
+        <div class="uz-icon">♫</div>
+        <div class="uz-label">Reference Track</div>
+        <div class="uz-hint">The target to match</div>
+        <div class="uz-fname" id="cRName"></div>
+      </div>
+    </div>
+    <button class="btn" id="cBtnGo" disabled>▶ Compare</button>
+    <div class="progress" id="cProg"><div class="pbar"><div class="pfill" id="cPFill"></div></div><div class="ptxt" id="cPTxt">Decoding...</div></div>
+
+    <!-- Your Track -->
+    <div class="section" id="cMainSec">
+      <div class="section-header"><div class="section-dot"></div><div class="section-name">Your Track</div></div>
+      <div class="metrics" id="cMainMetrics"></div>
+    </div>
+    <!-- Ref Track -->
+    <div class="section" id="cRefSec">
+      <div class="section-header"><div class="section-dot pink"></div><div class="section-name">Reference Track</div></div>
+      <div class="metrics" id="cRefMetrics"></div>
+    </div>
+    <!-- Comparison Charts -->
+    <div class="section" id="cCompSec">
+      <div class="section-header"><div class="section-dot amber"></div><div class="section-name">Comparison</div></div>
+      <div class="chart-box">
+        <div class="chart-label">Spectral Comparison</div>
+        <div class="legend"><div class="legend-item"><span class="lsw" style="background:#10BADA"></span> Your Track</div><div class="legend-item"><span class="lsw" style="background:#ff7dab"></span> Reference</div></div>
+        <canvas id="cCompSpec" height="220"></canvas>
+      </div>
+      <div class="comp-grid">
+        <div class="chart-box"><div class="chart-label">Dynamic Range</div><canvas id="cCompDyn" height="230"></canvas></div>
+        <div class="chart-box"><div class="chart-label">Stereo Width by Band</div><canvas id="cCompSt" height="230"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-label">LUFS Short-Term Comparison</div>
+        <div class="legend"><div class="legend-item"><span class="lsw" style="background:#10BADA"></span> Your Track</div><div class="legend-item"><span class="lsw" style="background:#ff7dab"></span> Reference</div></div>
+        <canvas id="cCompLufs" height="150"></canvas>
+      </div>
+      <div class="suggestions-box"><div class="sugg-title">⚡ Mastering Suggestions</div><div id="cSuggList"></div></div>
+    </div>
+  </div>
+
+  <div class="footer">GRANITA · Vincenzo Salvia Music Studio</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// GRANITA AUDIO ANALYZER v5
+// Analyze + Compare tabs
+// ═══════════════════════════════════════
+
+// ─── TABS ───
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('tab-'+tab).classList.add('on');
+  document.querySelector(`.tab-btn[onclick*="${tab}"]`).classList.add('active');
+}
+
+// ─── SHARED UTILS ───
+const yieldUI=()=>new Promise(r=>setTimeout(r,0));
+function getMono(buf){if(buf.numberOfChannels===1)return buf.getChannelData(0);const L=buf.getChannelData(0),R=buf.getChannelData(1),m=new Float32Array(L.length);for(let i=0;i<L.length;i++)m[i]=(L[i]+R[i])*0.5;return m;}
+async function decode(file){const ctx=new(window.AudioContext||window.webkitAudioContext)();const ab=await file.arrayBuffer();const buf=await ctx.decodeAudioData(ab);await ctx.close();return buf;}
+
+function setupUpload(zoneId, fileId, nameId, btnId, isRef){
+  const zone=document.getElementById(zoneId),fileEl=document.getElementById(fileId);
+  fileEl.onchange=e=>{if(e.target.files[0]){document.getElementById(nameId).textContent=e.target.files[0].name;zone.classList.add('has-file');if(btnId)checkCompBtn();}};
+  zone.ondragover=e=>{e.preventDefault();zone.style.borderColor=isRef?'#ff7dab':'#10BADA';};
+  zone.ondragleave=()=>{zone.style.borderColor='';};
+  zone.ondrop=e=>{e.preventDefault();zone.style.borderColor='';const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);fileEl.files=dt.files;fileEl.dispatchEvent(new Event('change'));}};
+}
+
+// Analyze uploads
+setupUpload('aZone','aFile','aName');
+document.getElementById('aFile').addEventListener('change',()=>{document.getElementById('aBtnGo').disabled=!document.getElementById('aFile').files[0];});
+
+// Compare uploads
+setupUpload('cMZone','cMFile','cMName','cBtnGo',false);
+setupUpload('cRZone','cRFile','cRName','cBtnGo',true);
+function checkCompBtn(){document.getElementById('cBtnGo').disabled=!(document.getElementById('cMFile').files[0]&&document.getElementById('cRFile').files[0]);}
+document.getElementById('cMFile').addEventListener('change',checkCompBtn);
+document.getElementById('cRFile').addEventListener('change',checkCompBtn);
+
+// ═══════════════════════════════════════
+// ANALYSIS ENGINES (shared)
+// ═══════════════════════════════════════
+
+async function detectBPM(buf){
+  const mono=getMono(buf),sr=buf.sampleRate,hop=512,bs=1024,n=Math.floor((mono.length-bs)/hop);
+  const env=new Float32Array(n);for(let i=0;i<n;i++){let s=0;const off=i*hop;for(let j=off;j<off+bs;j++)s+=mono[j]*mono[j];env[i]=Math.sqrt(s/bs);}await yieldUI();
+  const onset=new Float32Array(n);for(let i=1;i<n;i++)onset[i]=Math.max(0,env[i]-env[i-1]);
+  const minL=Math.round(60*sr/(200*hop)),maxL=Math.round(60*sr/(60*hop)),cLen=Math.min(n-maxL,4000);
+  let bestL=minL,bestC=-1;for(let lag=minL;lag<=Math.min(maxL,n/2);lag++){let c=0;for(let i=0;i<cLen;i++)c+=onset[i]*onset[i+lag];if(c>bestC){bestC=c;bestL=lag;}}await yieldUI();
+  let bpm=60/(bestL*hop/sr);while(bpm<70)bpm*=2;while(bpm>180)bpm/=2;return Math.round(bpm*10)/10;
+}
+
+async function detectKey(buf){
+  const mono=getMono(buf),sr=buf.sampleRate,fftSize=8192;
+  const noteNames=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const chroma=new Float64Array(12),nbins=fftSize/2,nf=Math.min(100,Math.floor(mono.length/fftSize));
+  const btc=[];for(let k=0;k<nbins;k++){const f=k*sr/fftSize;if(f<50||f>5000)continue;btc.push({k,bin:((Math.round(12*Math.log2(f/440)+69)%12)+12)%12});}
+  for(let f=0;f<nf;f++){const off=f*fftSize;for(const{k,bin}of btc){let re=0,im=0;for(let n=0;n<fftSize;n+=8){const s=mono[off+n],a=-2*Math.PI*k*n/fftSize;re+=s*Math.cos(a);im+=s*Math.sin(a);}chroma[bin]+=re*re+im*im;}if(f%20===0)await yieldUI();}
+  const mx=Math.max(...chroma);if(mx>0)for(let i=0;i<12;i++)chroma[i]/=mx;
+  const maj=[6.35,2.23,3.48,2.33,4.38,4.09,2.52,5.19,2.39,3.66,2.29,2.88],min=[6.33,2.68,3.52,5.38,2.60,3.53,2.54,4.75,3.98,2.69,3.34,3.17];
+  let bK='C',bM='Major',bCr=-Infinity;
+  for(let s=0;s<12;s++){let cM=0,cm=0;for(let i=0;i<12;i++){const ci=chroma[(i+s)%12];cM+=ci*maj[i];cm+=ci*min[i];}if(cM>bCr){bCr=cM;bK=noteNames[s];bM='Major';}if(cm>bCr){bCr=cm;bK=noteNames[s];bM='Minor';}}
+  return{key:bK,mode:bM};
+}
+
+async function calcLUFS(buf){
+  const sr=buf.sampleRate,len=buf.length,nch=Math.min(buf.numberOfChannels,2),channels=[];
+  for(let c=0;c<nch;c++)channels.push(buf.getChannelData(c));
+  function kWeight(input){
+    const out=new Float32Array(input.length);
+    const f1=1681.974450955533,G=3.999843853973347,Q1=0.7071752369554196,K1=Math.tan(Math.PI*f1/sr),Vh=Math.pow(10,G/20),Vb=Math.pow(Vh,0.4996667741545416);
+    const a0=1+K1/Q1+K1*K1,b0=(Vh+Vb*K1/Q1+K1*K1)/a0,b1=2*(K1*K1-Vh)/a0,b2=(Vh-Vb*K1/Q1+K1*K1)/a0,a1=2*(K1*K1-1)/a0,a2=(1-K1/Q1+K1*K1)/a0;
+    let x1=0,x2=0,y1=0,y2=0;const tmp=new Float32Array(input.length);
+    for(let i=0;i<input.length;i++){const x=input[i],y=b0*x+b1*x1+b2*x2-a1*y1-a2*y2;tmp[i]=y;x2=x1;x1=x;y2=y1;y1=y;}
+    const f2=38.13547087602444,Q2=0.5003270373238773,K2=Math.tan(Math.PI*f2/sr),a0_2=1+K2/Q2+K2*K2;
+    const hb0=1/a0_2,hb1=-2/a0_2,hb2=1/a0_2,ha1=2*(K2*K2-1)/a0_2,ha2=(1-K2/Q2+K2*K2)/a0_2;
+    x1=0;x2=0;y1=0;y2=0;
+    for(let i=0;i<tmp.length;i++){const x=tmp[i],y=hb0*x+hb1*x1+hb2*x2-ha1*y1-ha2*y2;out[i]=y;x2=x1;x1=x;y2=y1;y1=y;}return out;
+  }
+  const kw=[];for(let c=0;c<nch;c++){kw.push(kWeight(channels[c]));await yieldUI();}
+  const bs=Math.round(sr*0.4),step=Math.round(sr*0.1),nb=Math.floor((len-bs)/step)+1,bL=new Float64Array(nb);
+  for(let b=0;b<nb;b++){const s=b*step;let pw=0;for(let c=0;c<nch;c++){let cp=0;const ch=kw[c],end=Math.min(s+bs,ch.length);for(let i=s;i<end;i++)cp+=ch[i]*ch[i];cp/=bs;pw+=cp;}bL[b]=pw;if(b%5000===0)await yieldUI();}
+  const absT=Math.pow(10,(-70+0.691)/10);let gs=0,gc=0;for(let b=0;b<nb;b++)if(bL[b]>absT){gs+=bL[b];gc++;}
+  if(gc===0)return{integrated:-Infinity,shortTerm:[]};
+  const relT=(gs/gc)*0.1;let fs=0,fc=0;for(let b=0;b<nb;b++)if(bL[b]>relT){fs+=bL[b];fc++;}
+  const integrated=fc>0?-0.691+10*Math.log10(fs/fc):-Infinity;
+  const stB=Math.round(sr*3),stS=Math.round(sr),nST=Math.floor((len-stB)/stS)+1,shortTerm=[];
+  for(let b=0;b<nST;b++){const s=b*stS;let pw=0;for(let c=0;c<nch;c++){let cp=0;const ch=kw[c],end=Math.min(s+stB,ch.length);for(let i=s;i<end;i++)cp+=ch[i]*ch[i];cp/=stB;pw+=cp;}shortTerm.push(pw>0?Math.max(-70,-0.691+10*Math.log10(pw)):-70);if(b%500===0)await yieldUI();}
+  return{integrated:Math.round(integrated*10)/10,shortTerm};
+}
+
+async function analyzeSpectrum(buf){
+  const mono=getMono(buf),sr=buf.sampleRate,fftSize=4096,nf=Math.min(300,Math.floor(mono.length/fftSize));
+  const bandEdges=[20,30,40,50,63,80,100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150,4000,5000,6300,8000,10000,12500,16000,20000];
+  const freqRes=sr/fftSize,bb=[];
+  for(let i=0;i<bandEdges.length-1;i++)bb.push({freq:Math.round(Math.sqrt(bandEdges[i]*bandEdges[i+1])),kLo:Math.max(1,Math.round(bandEdges[i]/freqRes)),kHi:Math.min(fftSize/2-1,Math.round(bandEdges[i+1]/freqRes))});
+  const bP=new Float64Array(bb.length);
+  for(let f=0;f<nf;f++){const off=f*fftSize;for(let b=0;b<bb.length;b++){const{kLo,kHi}=bb[b];const step=Math.max(1,Math.round((kHi-kLo)/5));let cnt=0,bs=0;for(let k=kLo;k<=kHi;k+=step){const w=2*Math.PI*k/fftSize,coeff=2*Math.cos(w);let s0=0,s1=0,s2=0;for(let n=0;n<fftSize;n++){s0=mono[off+n]+coeff*s1-s2;s2=s1;s1=s0;}bs+=s1*s1+s2*s2-coeff*s1*s2;cnt++;}bP[b]+=bs/cnt;}if(f%30===0)await yieldUI();}
+  return bb.map((b,i)=>({freq:b.freq,db:bP[i]>0?10*Math.log10(bP[i]/nf)-60:-100}));
+}
+
+async function analyzeStereo(buf){
+  if(buf.numberOfChannels<2)return null;
+  const L=buf.getChannelData(0),R=buf.getChannelData(1),sr=buf.sampleRate,fftSize=4096,nf=Math.min(150,Math.floor(L.length/fftSize));
+  const bands=[{name:'Sub',lo:20,hi:80},{name:'Low',lo:80,hi:300},{name:'Low-Mid',lo:300,hi:1000},{name:'Mid',lo:1000,hi:4000},{name:'Hi-Mid',lo:4000,hi:8000},{name:'High',lo:8000,hi:16000}];
+  const freqRes=sr/fftSize,mP=new Float64Array(bands.length),sP=new Float64Array(bands.length);
+  for(let f=0;f<nf;f++){const off=f*fftSize;for(let b=0;b<bands.length;b++){const kLo=Math.max(1,Math.round(bands[b].lo/freqRes)),kHi=Math.min(fftSize/2-1,Math.round(bands[b].hi/freqRes)),step=Math.max(1,Math.round((kHi-kLo)/8));for(let k=kLo;k<=kHi;k+=step){const w=2*Math.PI*k/fftSize,coeff=2*Math.cos(w);let sL0=0,sL1=0,sL2=0,sR0=0,sR1=0,sR2=0;for(let n=0;n<fftSize;n++){sL0=L[off+n]+coeff*sL1-sL2;sL2=sL1;sL1=sL0;sR0=R[off+n]+coeff*sR1-sR2;sR2=sR1;sR1=sR0;}const pL=sL1*sL1+sL2*sL2-coeff*sL1*sL2,pR=sR1*sR1+sR2*sR2-coeff*sR1*sR2;mP[b]+=Math.abs((pL+pR+2*Math.sqrt(Math.abs(pL*pR)))/4);sP[b]+=Math.abs((pL+pR-2*Math.sqrt(Math.abs(pL*pR)))/4);}}if(f%20===0)await yieldUI();}
+  return bands.map((band,i)=>{const t=mP[i]+sP[i];return{name:band.name,width:t>0?Math.round(sP[i]/t*100):0};});
+}
+
+async function analyzeDynamic(buf){
+  const mono=getMono(buf),sr=buf.sampleRate,block=Math.round(sr*0.05),n=Math.floor(mono.length/block),rV=[],pV=[];
+  for(let b=0;b<n;b++){let sum=0,pk=0;const off=b*block;for(let i=off;i<off+block;i++){sum+=mono[i]*mono[i];const a=Math.abs(mono[i]);if(a>pk)pk=a;}const rms=Math.sqrt(sum/block);if(rms>0.0001){rV.push(20*Math.log10(rms));pV.push(20*Math.log10(pk));}if(b%3000===0)await yieldUI();}
+  rV.sort((a,b)=>a-b);pV.sort((a,b)=>a-b);
+  const pct=(arr,p)=>arr[Math.floor(arr.length*p/100)]||-60;
+  const tp=pV.length?pV[pV.length-1]:-60,dr=pct(rV,90)-pct(rV,10),avg=rV.reduce((a,b)=>a+b,0)/rV.length;
+  return{truePeak:Math.round(tp*10)/10,headroom:Math.round((0-tp)*10)/10,dynamicRange:Math.round(dr*10)/10,crestFactor:Math.round((tp-avg)*10)/10};
+}
+
+// ─── CLIPPING DETECTION ───
+function detectClipping(buf){
+  const threshold=0.9999;let clips=0,total=0;
+  for(let c=0;c<buf.numberOfChannels;c++){const d=buf.getChannelData(c);total+=d.length;for(let i=0;i<d.length;i++)if(Math.abs(d[i])>=threshold)clips++;}
+  const pct=clips/total*100;
+  return{clips,pct:Math.round(pct*1000)/1000,total};
+}
+
+// ─── MONO COMPATIBILITY ───
+async function analyzeMonoCompat(buf){
+  if(buf.numberOfChannels<2)return{correlation:1,compatible:true};
+  const L=buf.getChannelData(0),R=buf.getChannelData(1),len=L.length;
+  let sumLR=0,sumLL=0,sumRR=0;
+  for(let i=0;i<len;i++){sumLR+=L[i]*R[i];sumLL+=L[i]*L[i];sumRR+=R[i]*R[i];if(i%500000===0)await yieldUI();}
+  const corr=sumLR/Math.sqrt(sumLL*sumRR);
+  return{correlation:Math.round(corr*100)/100,compatible:corr>0.5};
+}
+
+// ─── SPECTRAL BAND ENERGY (for mix check) ───
+async function analyzeBandEnergy(buf){
+  const mono=getMono(buf),sr=buf.sampleRate,fftSize=4096,nf=Math.min(200,Math.floor(mono.length/fftSize));
+  // Define mix-relevant bands
+  const bands=[
+    {name:'Sub Bass',lo:20,hi:80,desc:'Sub frequencies'},
+    {name:'Kick Body',lo:50,hi:100,desc:'Kick drum fundamental'},
+    {name:'Kick Click',lo:2000,hi:5000,desc:'Kick attack/beater'},
+    {name:'Bass',lo:80,hi:250,desc:'Bass synth body'},
+    {name:'Low Mids',lo:250,hi:800,desc:'Pads, warmth, body'},
+    {name:'Mids',lo:800,hi:2500,desc:'Lead synths, vocals'},
+    {name:'Presence',lo:2500,hi:6000,desc:'Vocal clarity, synth edge'},
+    {name:'Brilliance',lo:6000,hi:10000,desc:'Hats, cymbals, air'},
+    {name:'Air',lo:10000,hi:16000,desc:'Shimmer, openness'},
+  ];
+  const freqRes=sr/fftSize;
+  const bandPower=new Float64Array(bands.length);
+  let totalPower=0;
+
+  for(let f=0;f<nf;f++){
+    const off=f*fftSize;
+    for(let b=0;b<bands.length;b++){
+      const kLo=Math.max(1,Math.round(bands[b].lo/freqRes)),kHi=Math.min(fftSize/2-1,Math.round(bands[b].hi/freqRes));
+      const step=Math.max(1,Math.round((kHi-kLo)/6));
+      for(let k=kLo;k<=kHi;k+=step){
+        const w=2*Math.PI*k/fftSize,coeff=2*Math.cos(w);
+        let s0=0,s1=0,s2=0;for(let n=0;n<fftSize;n++){s0=mono[off+n]+coeff*s1-s2;s2=s1;s1=s0;}
+        const p=s1*s1+s2*s2-coeff*s1*s2;bandPower[b]+=p;totalPower+=p;
+      }
+    }
+    if(f%30===0)await yieldUI();
+  }
+
+  // Normalize to dB relative to total
+  return bands.map((band,i)=>{
+    const relDb=totalPower>0?10*Math.log10(bandPower[i]/totalPower):0;
+    return{...band,power:bandPower[i],relDb:Math.round(relDb*10)/10};
+  });
+}
+
+// ═══════════════════════════════════════
+// SYNTHWAVE MIX CHECK ENGINE
+// ═══════════════════════════════════════
+
+// Stage state
+let currentStage = 'mix'; // 'mix' or 'master'
+function setStage(s){
+  currentStage=s;
+  document.getElementById('stgMix').classList.toggle('active',s==='mix');
+  document.getElementById('stgMaster').classList.toggle('active',s==='master');
+}
+
+// Dual target profiles — relative dB to total energy
+const TARGETS = {
+  mix: {
+    // Pre-master: more headroom, wider dynamics, less pushed
+    bands: {
+      'Sub Bass':   {ideal:[-20,-14], ok:[-24,-11], tip:'Sub should be present but controlled. Leave room for mastering to shape it.'},
+      'Kick Body':  {ideal:[-22,-16], ok:[-26,-13], tip:'Kick fundamental should anchor the groove without eating headroom. Mastering will tighten it.'},
+      'Kick Click': {ideal:[-28,-20], ok:[-32,-17], tip:'A moderate click helps the kick cut through. Don\'t overdo it — mastering limiting will push it forward.'},
+      'Bass':       {ideal:[-15,-9],  ok:[-19,-6],  tip:'The bass synth is king in synthwave. Keep it strong but not overwhelming — the mastering chain will add cohesion.'},
+      'Low Mids':   {ideal:[-17,-11], ok:[-21,-8],  tip:'Warmth and body. Keep this clean — muddiness here is hard to fix in mastering.'},
+      'Mids':       {ideal:[-19,-13], ok:[-23,-10], tip:'Leads and vocals live here. Synthwave often scoops mids slightly. Make sure the leads still cut.'},
+      'Presence':   {ideal:[-21,-15], ok:[-25,-12], tip:'Clarity and definition. EQ surgical cuts here can clean up a mix significantly.'},
+      'Brilliance': {ideal:[-25,-17], ok:[-29,-14], tip:'Hats and cymbals. Keep them present but not harsh — mastering will add brightness.'},
+      'Air':        {ideal:[-32,-22], ok:[-38,-18], tip:'Shimmer and openness. A bit of air-band presence goes a long way. Don\'t over-boost.'},
+    },
+    lufs:     {ideal:[-18,-14], ok:[-22,-11], tip:'Pre-master mixes typically sit -14 to -18 LUFS. Leave loudness for the mastering engineer.'},
+    dynamics: {ideal:[10,18],   ok:[7,22],    tip:'A pre-master should have healthy dynamics (10-18 dB). Bus compression is fine, but don\'t squash it.'},
+    headroom: {ideal:[3,6],     ok:[1.5,10],  tip:'Leave 3-6 dB of headroom for mastering. This gives the mastering chain room to work.'},
+    crest:    {ideal:[8,16],    ok:[5,20],    tip:'Healthy transients in a pre-master mix. Mastering limiting will shape the final crest factor.'},
+  },
+  master: {
+    // Mastered: louder, tighter, less headroom
+    bands: {
+      'Sub Bass':   {ideal:[-18,-12], ok:[-22,-9],  tip:'Sub should be felt, not overwhelming. Tight and controlled after mastering.'},
+      'Kick Body':  {ideal:[-20,-14], ok:[-24,-11], tip:'Kick body gives the groove weight. After mastering it should be punchy and defined.'},
+      'Kick Click': {ideal:[-26,-18], ok:[-30,-15], tip:'Kick click should cut clearly. Mastering limiting brings it forward.'},
+      'Bass':       {ideal:[-14,-8],  ok:[-18,-5],  tip:'Bass synth is the heart of synthwave. Should be prominent, tight, and well-defined.'},
+      'Low Mids':   {ideal:[-16,-10], ok:[-20,-7],  tip:'Controlled warmth. A master should have clean low-mids with no mud.'},
+      'Mids':       {ideal:[-18,-12], ok:[-22,-9],  tip:'Lead synths and vocals. The mastering EQ should have brought these to the right level.'},
+      'Presence':   {ideal:[-20,-14], ok:[-24,-11], tip:'Definition and clarity. Should be present without harshness after mastering.'},
+      'Brilliance': {ideal:[-24,-16], ok:[-28,-13], tip:'Hats and cymbals. Bright but not fatiguing — a hallmark of good synthwave mastering.'},
+      'Air':        {ideal:[-30,-20], ok:[-36,-16], tip:'The shimmer on top. Gives the master openness and expensive feel.'},
+    },
+    lufs:     {ideal:[-12,-8],  ok:[-14,-6],  tip:'Synthwave masters typically sit -8 to -12 LUFS. Streaming normalizes to -14, so pushing beyond -8 is pointless.'},
+    dynamics: {ideal:[6,12],    ok:[4,15],    tip:'A mastered synthwave track sits 6-12 dB dynamic range. Punchy but controlled.'},
+    headroom: {ideal:[0.5,2],   ok:[0.1,3],   tip:'Industry standard is True Peak -1 dBTP. Leave at least 0.5 dB for safe MP3/streaming encoding.'},
+    crest:    {ideal:[5,10],    ok:[3,14],    tip:'Mastered crest factor reflects the limiter work. Too low = lifeless, too high = not mastered enough.'},
+  }
+};
+
+function runMixCheck(bandEnergy, clipping, monoCompat, dynamic, lufs, stereo){
+  const T = TARGETS[currentStage];
+  const stageLabel = currentStage === 'mix' ? 'pre-master' : 'mastered';
+  const checks=[];
+  let totalScore=0, totalWeight=0;
+
+  // Band checks
+  bandEnergy.forEach(band=>{
+    const target=T.bands[band.name];
+    if(!target)return;
+    const val=band.relDb;
+    let status, detail, score;
+
+    if(val>=target.ideal[0]&&val<=target.ideal[1]){
+      status='green'; detail=`${val} dB — right in the sweet spot for ${stageLabel}`; score=100;
+    }else if(val>=target.ok[0]&&val<=target.ok[1]){
+      status='amber';
+      if(val<target.ideal[0])detail=`${val} dB — a bit low (${stageLabel} ideal: ${target.ideal[0]} to ${target.ideal[1]} dB)`;
+      else detail=`${val} dB — a bit hot (${stageLabel} ideal: ${target.ideal[0]} to ${target.ideal[1]} dB)`;
+      score=65;
+    }else{
+      status='red';
+      if(val<target.ok[0])detail=`${val} dB — too low (${stageLabel} ideal: ${target.ideal[0]} to ${target.ideal[1]} dB)`;
+      else detail=`${val} dB — too high (${stageLabel} ideal: ${target.ideal[0]} to ${target.ideal[1]} dB)`;
+      score=20;
+    }
+
+    const weight = band.name==='Bass'||band.name==='Kick Body' ? 1.3 : 1;
+    totalScore+=score*weight; totalWeight+=weight;
+
+    const range=target.ok[1]-target.ok[0];
+    const meterPct=Math.max(0,Math.min(100,((val-target.ok[0])/range)*100));
+    checks.push({name:band.name,desc:band.desc,status,detail,tip:target.tip,meterPct,meterColor:status});
+  });
+
+  // Kick punch ratio
+  const kickBody=bandEnergy.find(b=>b.name==='Kick Body');
+  const kickClick=bandEnergy.find(b=>b.name==='Kick Click');
+  if(kickBody&&kickClick){
+    const ratio=kickBody.relDb-kickClick.relDb;
+    let status,detail,score;
+    if(ratio>=3&&ratio<=10){status='green';detail=`Punch ratio ${ratio.toFixed(1)} dB — good balance of weight and attack`;score=100;}
+    else if(ratio>10){status='amber';detail=`Punch ratio ${ratio.toFixed(1)} dB — heavy body, low click. May lack definition`;score=60;}
+    else{status='amber';detail=`Punch ratio ${ratio.toFixed(1)} dB — more click than body. May sound thin`;score=60;}
+    totalScore+=score;totalWeight+=1;
+    checks.push({name:'Kick Punch',desc:'Body vs attack balance',status,detail,tip:'Ideal ratio is 3-10 dB more body than click for synthwave kicks.'});
+  }
+
+  // Clipping
+  {
+    let status,detail,score;
+    if(clipping.clips===0){status='green';detail='No clipped samples detected';score=100;}
+    else if(clipping.pct<0.01){status='amber';detail=`${clipping.clips} clipped samples (${clipping.pct}%) — minor`;score=70;}
+    else{status='red';detail=`${clipping.clips} clipped samples (${clipping.pct}%) — significant clipping`;score=15;}
+    totalScore+=score*1.2;totalWeight+=1.2;
+    const clipTip = currentStage==='mix'
+      ? 'A pre-master should have ZERO clipping. Fix your gain staging before sending to mastering.'
+      : 'Clipping in a master suggests the limiter isn\'t catching peaks. Use a true-peak limiter with lookahead.';
+    checks.push({name:'Clipping',desc:'Digital distortion check',status,detail,tip:clipTip});
+  }
+
+  // Mono compatibility
+  if(monoCompat){
+    let status,detail,score;
+    const c=monoCompat.correlation;
+    if(c>0.8){status='green';detail=`Correlation ${c} — excellent mono compatibility`;score=100;}
+    else if(c>0.5){status='amber';detail=`Correlation ${c} — decent, but check bass and low elements in mono`;score=65;}
+    else{status='red';detail=`Correlation ${c} — poor mono compatibility. Bass may disappear on mono systems`;score=20;}
+    totalScore+=score*1.1;totalWeight+=1.1;
+    checks.push({name:'Mono Compat.',desc:'Phase correlation L/R',status,detail,tip:'Synthwave bass should be nearly mono. Wide effects on highs are fine.'});
+  }
+
+  // Dynamic range (stage-specific)
+  {
+    const t=T.dynamics;
+    let status,detail,score;
+    const dr=dynamic.dynamicRange;
+    if(dr>=t.ideal[0]&&dr<=t.ideal[1]){status='green';detail=`${dr} dB — healthy dynamics for ${stageLabel} synthwave`;score=100;}
+    else if(dr>=t.ok[0]&&dr<=t.ok[1]){status='amber';detail=`${dr} dB — ${dr<t.ideal[0]?'fairly compressed':'very dynamic'} for ${stageLabel}`;score=65;}
+    else{status='red';detail=`${dr} dB — ${dr<t.ok[0]?'over-compressed':'extremely wide'} for a ${stageLabel} track`;score=25;}
+    totalScore+=score;totalWeight+=1;
+    checks.push({name:'Dynamics',desc:'Dynamic range assessment',status,detail,tip:t.tip});
+  }
+
+  // LUFS (stage-specific)
+  {
+    const t=T.lufs;
+    let status,detail,score;
+    const l=lufs.integrated;
+    if(l>=t.ideal[0]&&l<=t.ideal[1]){status='green';detail=`${l} LUFS — right in the ${stageLabel} target range`;score=100;}
+    else if(l>=t.ok[0]&&l<=t.ok[1]){status='amber';detail=`${l} LUFS — ${l<t.ideal[0]?'a bit quiet':'a bit loud'} for ${stageLabel} (ideal: ${t.ideal[0]} to ${t.ideal[1]})`;score=65;}
+    else{status='red';detail=`${l} LUFS — outside expected range for ${stageLabel} (ideal: ${t.ideal[0]} to ${t.ideal[1]})`;score=20;}
+    totalScore+=score;totalWeight+=1;
+    checks.push({name:'Loudness',desc:'Integrated LUFS level',status,detail,tip:t.tip});
+  }
+
+  // Headroom (stage-specific)
+  {
+    const t=T.headroom;
+    let status,detail,score;
+    const h=dynamic.headroom;
+    if(h>=t.ideal[0]&&h<=t.ideal[1]){status='green';detail=`${h} dB — ${currentStage==='mix'?'good headroom for mastering':'safe headroom for encoding'}`;score=100;}
+    else if(h>=t.ok[0]&&h<=t.ok[1]){status='amber';detail=`${h} dB — ${h<t.ideal[0]?'tight':'generous'} for a ${stageLabel}`;score=70;}
+    else{status='red';detail=`${h} dB — ${h<t.ok[0]?'no headroom':'excessive headroom'} for a ${stageLabel}`;score=20;}
+    totalScore+=score;totalWeight+=1;
+    checks.push({name:'Headroom',desc:'Space to 0 dBFS',status,detail,tip:t.tip});
+  }
+
+  // Crest factor (stage-specific)
+  {
+    const t=T.crest;
+    let status,detail,score;
+    const cf=dynamic.crestFactor;
+    if(cf>=t.ideal[0]&&cf<=t.ideal[1]){status='green';detail=`${cf} dB — ${currentStage==='mix'?'healthy transients':'well-controlled transients'}`;score=100;}
+    else if(cf>=t.ok[0]&&cf<=t.ok[1]){status='amber';detail=`${cf} dB — ${cf<t.ideal[0]?'transients are quite flat':'very peaky'} for a ${stageLabel}`;score=65;}
+    else{status='red';detail=`${cf} dB — ${cf<t.ok[0]?'crushed transients':'extreme peaks'} for a ${stageLabel}`;score=20;}
+    totalScore+=score;totalWeight+=1;
+    checks.push({name:'Crest Factor',desc:'Peak-to-average ratio',status,detail,tip:t.tip});
+  }
+
+  // Stereo width - sub check
+  if(stereo){
+    const subWidth=stereo.find(s=>s.name==='Sub');
+    if(subWidth&&subWidth.width>15){
+      checks.push({name:'Sub Stereo',desc:'Sub-bass mono check',status:'red',detail:`Sub width ${subWidth.width}% — too wide, should be nearly mono`,tip:'Sub frequencies below 80Hz should be mono or near-mono for translation.'});
+      totalScore+=20;totalWeight+=1;
+    }else if(subWidth){
+      checks.push({name:'Sub Stereo',desc:'Sub-bass mono check',status:'green',detail:`Sub width ${subWidth.width}% — properly centered`,tip:'Good — sub bass is mono, which ensures translation on all systems.'});
+      totalScore+=100;totalWeight+=1;
+    }
+  }
+
+  const finalScore=Math.round(totalScore/totalWeight);
+  return{checks,score:finalScore};
+}
+
+// ═══════════════════════════════════════
+// DRAWING (shared)
+// ═══════════════════════════════════════
+
+const COL={cyan:'#10BADA',cyanA:'rgba(16,186,218,',pink:'#ff7dab',pinkA:'rgba(255,125,171,',grid:'rgba(55,65,81,0.4)',label:'#6b7280',text:'#9ca3af',white:'#e8ecf0'};
+
+function setupCanvas(id){const c=document.getElementById(id);const dpr=window.devicePixelRatio||1;const w=c.offsetWidth;const h=parseInt(c.getAttribute('height'))||200;c.width=w*dpr;c.height=h*dpr;const ctx=c.getContext('2d');ctx.scale(dpr,dpr);return{ctx,w,h};}
+
+function drawSpectrum(id,bands,type){
+  const{ctx,w,h}=setupCanvas(id);const minDb=-80,maxDb=0,pad=38,barW=(w-pad-5)/bands.length;
+  ctx.strokeStyle=COL.grid;ctx.lineWidth=.5;
+  for(let db=-60;db<=0;db+=20){const y=h-20-((db-minDb)/(maxDb-minDb))*(h-40);ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w,y);ctx.stroke();ctx.fillStyle=COL.label;ctx.font='500 9px JetBrains Mono';ctx.textAlign='right';ctx.fillText(db+'dB',pad-4,y+3);}
+  const ca=type==='cyan'?COL.cyanA:COL.pinkA;const grad=ctx.createLinearGradient(0,h-20,0,20);grad.addColorStop(0,ca+'0.08)');grad.addColorStop(1,ca+'0.55)');
+  bands.forEach((b,i)=>{const x=pad+i*barW;const dbc=Math.max(minDb,Math.min(maxDb,b.db));const bh=((dbc-minDb)/(maxDb-minDb))*(h-40);ctx.fillStyle=grad;ctx.fillRect(x,h-20-bh,barW-1.5,bh);if(i%3===0){ctx.fillStyle=COL.label;ctx.font='500 8px JetBrains Mono';ctx.textAlign='center';ctx.fillText(b.freq>=1000?(b.freq/1000).toFixed(1)+'k':b.freq,x+barW/2,h-6);}});
+}
+
+function drawDualCurve(id,b1,b2){
+  const{ctx,w,h}=setupCanvas(id);const minDb=-80,maxDb=0,pad=40,plotW=w-pad-10,plotH=h-40;
+  ctx.strokeStyle=COL.grid;ctx.lineWidth=.5;
+  for(let db=-60;db<=0;db+=20){const y=10+plotH-((db-minDb)/(maxDb-minDb))*plotH;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-10,y);ctx.stroke();ctx.fillStyle=COL.label;ctx.font='500 9px JetBrains Mono';ctx.textAlign='right';ctx.fillText(db+'dB',pad-4,y+3);}
+  function curve(bands,col,colA){ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=2;bands.forEach((b,i)=>{const x=pad+(i/(bands.length-1))*plotW;const y=10+plotH-((Math.max(minDb,Math.min(maxDb,b.db))-minDb)/(maxDb-minDb))*plotH;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();ctx.lineTo(pad+plotW,10+plotH);ctx.lineTo(pad,10+plotH);ctx.closePath();ctx.fillStyle=colA+'0.05)';ctx.fill();}
+  curve(b1,COL.cyan,COL.cyanA);curve(b2,COL.pink,COL.pinkA);
+  b1.forEach((b,i)=>{if(i%4===0){const x=pad+(i/(b1.length-1))*plotW;ctx.fillStyle=COL.label;ctx.font='500 8px JetBrains Mono';ctx.textAlign='center';ctx.fillText(b.freq>=1000?(b.freq/1000).toFixed(1)+'k':b.freq,x,h-6);}});
+}
+
+function drawLufs(id,data,col){
+  const{ctx,w,h}=setupCanvas(id);const minL=-40,maxL=0,pad=40,plotW=w-pad-10,plotH=h-30;
+  ctx.strokeStyle=COL.grid;ctx.lineWidth=.5;
+  for(let l=-35;l<=0;l+=5){const y=10+plotH-((l-minL)/(maxL-minL))*plotH;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-10,y);ctx.stroke();ctx.fillStyle=COL.label;ctx.font='500 9px JetBrains Mono';ctx.textAlign='right';ctx.fillText(l,pad-4,y+3);}
+  ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=1.5;data.forEach((v,i)=>{const x=pad+(i/(data.length-1))*plotW;const y=10+plotH-((Math.max(minL,Math.min(maxL,v))-minL)/(maxL-minL))*plotH;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();
+}
+
+function drawDualLufs(id,d1,d2){
+  const{ctx,w,h}=setupCanvas(id);const minL=-40,maxL=0,pad=40,plotW=w-pad-10,plotH=h-30;
+  ctx.strokeStyle=COL.grid;ctx.lineWidth=.5;
+  for(let l=-35;l<=0;l+=5){const y=10+plotH-((l-minL)/(maxL-minL))*plotH;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-10,y);ctx.stroke();ctx.fillStyle=COL.label;ctx.font='500 9px JetBrains Mono';ctx.textAlign='right';ctx.fillText(l,pad-4,y+3);}
+  function curve(data,col){ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=1.5;data.forEach((v,i)=>{const x=pad+(i/(data.length-1))*plotW;const y=10+plotH-((Math.max(minL,Math.min(maxL,v))-minL)/(maxL-minL))*plotH;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});ctx.stroke();}
+  curve(d1,COL.cyan);curve(d2,COL.pink);
+}
+
+function drawDynComp(id,d1,d2){
+  const{ctx,w,h}=setupCanvas(id);
+  const metrics=[{label:'Dynamic Range',v1:d1.dynamicRange,v2:d2.dynamicRange,u:'dB'},{label:'Crest Factor',v1:d1.crestFactor,v2:d2.crestFactor,u:'dB'},{label:'True Peak',v1:d1.truePeak,v2:d2.truePeak,u:'dBFS'},{label:'Headroom',v1:d1.headroom,v2:d2.headroom,u:'dB'}];
+  const barH=16,gap=22,startY=10,maxV=30,lp=105,ba=w-lp-15;
+  metrics.forEach((m,i)=>{const y=startY+i*(barH*2+gap);ctx.fillStyle=COL.text;ctx.font='600 10px "Futura PT",Futura,sans-serif';ctx.textAlign='right';ctx.fillText(m.label.toUpperCase(),lp-10,y+barH/2+4);
+    const w1=Math.min(Math.abs(m.v1)/maxV*ba,ba);ctx.fillStyle=COL.cyanA+'0.4)';ctx.beginPath();ctx.roundRect(lp,y,w1,barH,3);ctx.fill();ctx.fillStyle=COL.white;ctx.font='500 10px JetBrains Mono';ctx.textAlign='left';ctx.fillText(m.v1+' '+m.u,lp+w1+6,y+barH/2+4);
+    const w2=Math.min(Math.abs(m.v2)/maxV*ba,ba);ctx.fillStyle=COL.pinkA+'0.4)';ctx.beginPath();ctx.roundRect(lp,y+barH+3,w2,barH,3);ctx.fill();ctx.fillText(m.v2+' '+m.u,lp+w2+6,y+barH+3+barH/2+4);
+  });
+}
+
+function drawStereoComp(id,s1,s2){
+  const{ctx,w,h}=setupCanvas(id);
+  if(!s1||!s2){ctx.fillStyle=COL.label;ctx.font='500 13px "EB Garamond",Georgia';ctx.textAlign='center';ctx.fillText('Requires stereo files',w/2,h/2);return;}
+  const plotH=h-40,maxW=100,barW=(w-60)/s1.length;
+  ctx.strokeStyle=COL.grid;ctx.lineWidth=.5;
+  for(let p=0;p<=100;p+=25){const y=10+plotH-(p/maxW)*plotH;ctx.beginPath();ctx.moveTo(40,y);ctx.lineTo(w,y);ctx.stroke();ctx.fillStyle=COL.label;ctx.font='500 9px JetBrains Mono';ctx.textAlign='right';ctx.fillText(p+'%',36,y+3);}
+  s1.forEach((b,i)=>{const x=45+i*barW,hb=(barW-6)/2;const h1=(b.width/maxW)*plotH;ctx.fillStyle=COL.cyanA+'0.4)';ctx.fillRect(x,10+plotH-h1,hb,h1);const h2=(s2[i].width/maxW)*plotH;ctx.fillStyle=COL.pinkA+'0.4)';ctx.fillRect(x+hb+2,10+plotH-h2,hb,h2);ctx.fillStyle=COL.label;ctx.font='500 8px JetBrains Mono';ctx.textAlign='center';ctx.fillText(b.name,x+barW/2-2,h-6);});
+}
+
+// ─── RENDER HELPERS ───
+function renderMetrics(id,d,cls){
+  const cards=[{l:'BPM',v:d.bpm,u:'beats per minute'},{l:'Key',v:d.key.key+' '+d.key.mode,u:'detected key'},{l:'LUFS Integrated',v:d.lufs.integrated,u:'LUFS'},{l:'True Peak',v:d.dynamic.truePeak,u:'dBFS'},{l:'Headroom',v:d.dynamic.headroom,u:'dB to 0 dBFS'},{l:'Dynamic Range',v:d.dynamic.dynamicRange,u:'dB'},{l:'Crest Factor',v:d.dynamic.crestFactor,u:'dB'}];
+  if(d.stereo){const avg=Math.round(d.stereo.reduce((a,b)=>a+b.width,0)/d.stereo.length);cards.push({l:'Avg Stereo Width',v:avg+'%',u:'S/(M+S) ratio'});}
+  document.getElementById(id).innerHTML=cards.map(c=>`<div class="mc"><div class="mc-label">${c.l}</div><div class="mc-val ${cls||''}">${c.v}</div><div class="mc-unit">${c.u}</div></div>`).join('');
+}
+
+function renderMixCheck(checks,score){
+  // Score
+  const scoreEl=document.getElementById('aScore');
+  const scoreSub=document.getElementById('aScoreSub');
+  const scoreColor=score>=80?'var(--green)':score>=55?'var(--amber)':'var(--red)';
+  scoreEl.style.color=scoreColor;
+  scoreEl.textContent=score+'/100';
+  scoreSub.textContent=score>=80?'Looking good! Minor tweaks at most.':score>=55?'Decent mix, but some areas need attention.':'Significant issues detected. Review the checks below.';
+
+  // Grid
+  const grid=document.getElementById('aMixGrid');
+  grid.innerHTML=checks.map(c=>{
+    const meterCol=c.meterColor==='green'?'var(--green)':c.meterColor==='amber'?'var(--amber)':'var(--red)';
+    const meterHtml=c.meterPct!==undefined?`<div class="mix-meter"><div class="mix-meter-fill" style="width:${c.meterPct}%;background:${meterCol}"></div></div>`:'';
+    return `<div class="mix-item"><div class="mix-light ${c.status}"></div><div class="mix-info"><div class="mix-name">${c.name}</div><div class="mix-detail">${c.detail}</div>${meterHtml}</div></div>`;
+  }).join('');
+
+  // Suggestions (only amber/red)
+  const issues=checks.filter(c=>c.status!=='green'&&c.tip);
+  const suggEl=document.getElementById('aMixSugg');
+  if(issues.length===0){
+    suggEl.innerHTML='<div class="sitem">All checks passed. Your mix is in great shape for synthwave!</div>';
+  }else{
+    suggEl.innerHTML=issues.map(c=>`<div class="sitem"><strong>${c.name}:</strong> ${c.tip}</div>`).join('');
+  }
+}
+
+function genCompSuggestions(md,rd){
+  const s=[];
+  const ld=md.lufs.integrated-rd.lufs.integrated;
+  if(Math.abs(ld)>1)s.push(ld>0?`<strong>Loudness:</strong> Your track is ${Math.abs(ld).toFixed(1)} LUFS louder. Consider pulling back the limiter.`:`<strong>Loudness:</strong> Your track is ${Math.abs(ld).toFixed(1)} LUFS quieter. Room to push the limiter.`);
+  else s.push(`<strong>Loudness:</strong> Within 1 dB of the reference — good match!`);
+  const dd=md.dynamic.dynamicRange-rd.dynamic.dynamicRange;
+  if(Math.abs(dd)>2)s.push(dd>0?`<strong>Dynamics:</strong> ${Math.abs(dd).toFixed(1)} dB more dynamic range. Reference is more compressed.`:`<strong>Dynamics:</strong> ${Math.abs(dd).toFixed(1)} dB more compressed than reference.`);
+  const cd=md.dynamic.crestFactor-rd.dynamic.crestFactor;
+  if(Math.abs(cd)>2)s.push(cd>0?`<strong>Transients:</strong> Higher crest factor. Reference has flatter peaks.`:`<strong>Transients:</strong> Reference has sharper transients.`);
+  const hd=md.dynamic.headroom-rd.dynamic.headroom;
+  if(Math.abs(hd)>0.5)s.push(hd>0?`<strong>Headroom:</strong> ${Math.abs(hd).toFixed(1)} dB more headroom. Reference is pushed closer to ceiling.`:`<strong>Headroom:</strong> Reference has ${Math.abs(hd).toFixed(1)} dB more headroom.`);
+  if(md.spectrum.length===rd.spectrum.length){
+    const len=md.spectrum.length;const avg=(lo,hi)=>{let d=0;for(let i=lo;i<Math.min(hi,len);i++)d+=md.spectrum[i].db-rd.spectrum[i].db;return d/Math.max(1,Math.min(hi,len)-lo);};
+    const lowD=avg(0,6);if(Math.abs(lowD)>3)s.push(lowD>0?`<strong>Low End:</strong> ${Math.abs(lowD).toFixed(1)} dB hotter.`:`<strong>Low End:</strong> Reference has ${Math.abs(lowD).toFixed(1)} dB more low-end.`);
+    const midD=avg(10,18);if(Math.abs(midD)>3)s.push(midD>0?`<strong>Midrange:</strong> ${Math.abs(midD).toFixed(1)} dB louder.`:`<strong>Midrange:</strong> Reference has ${Math.abs(midD).toFixed(1)} dB fuller mids.`);
+    const hiD=avg(22,len);if(Math.abs(hiD)>3)s.push(hiD>0?`<strong>High End:</strong> ${Math.abs(hiD).toFixed(1)} dB brighter.`:`<strong>High End:</strong> Reference is ${Math.abs(hiD).toFixed(1)} dB brighter.`);
+  }
+  if(md.stereo&&rd.stereo){const am=md.stereo.reduce((a,b)=>a+b.width,0)/md.stereo.length,ar=rd.stereo.reduce((a,b)=>a+b.width,0)/rd.stereo.length;if(Math.abs(am-ar)>8)s.push((am-ar)>0?`<strong>Stereo:</strong> Your mix is wider. Reference is tighter.`:`<strong>Stereo:</strong> Reference is wider.`);}
+  if(s.length<=1)s.push('Your track closely matches the reference. Nice work!');
+  return s;
+}
+
+// ═══════════════════════════════════════
+// ANALYZE TAB — MAIN FLOW
+// ═══════════════════════════════════════
+
+document.getElementById('aBtnGo').addEventListener('click',async()=>{
+  const errEl=document.getElementById('errA');errEl.classList.remove('on');
+  const f=document.getElementById('aFile').files[0];if(!f){errEl.textContent='Upload a track first.';errEl.classList.add('on');return;}
+  const btn=document.getElementById('aBtnGo');btn.disabled=true;
+  const prog=document.getElementById('aProg'),pf=document.getElementById('aPFill'),pt=document.getElementById('aPTxt');
+  const sp=(p,t)=>{pf.style.width=p+'%';pt.textContent=t;};
+  prog.classList.add('on');
+  ['aMetricsSec','aChartsSec','aMixSec'].forEach(id=>document.getElementById(id).classList.remove('on'));
+
+  try{
+    sp(5,'Decoding...');const buf=await decode(f);
+    sp(12,'Detecting BPM...');const bpm=await detectBPM(buf);
+    sp(20,'Detecting key...');const key=await detectKey(buf);
+    sp(32,'Calculating LUFS...');const lufs=await calcLUFS(buf);
+    sp(45,'Analyzing spectrum...');const spec=await analyzeSpectrum(buf);
+    sp(55,'Analyzing dynamics...');const dyn=await analyzeDynamic(buf);
+    sp(62,'Analyzing stereo...');const st=await analyzeStereo(buf);
+    sp(70,'Checking clipping...');const clip=detectClipping(buf);
+    sp(75,'Checking mono compatibility...');const mono=await analyzeMonoCompat(buf);
+    sp(82,'Analyzing frequency bands...');const bandE=await analyzeBandEnergy(buf);
+
+    const data={bpm,key,lufs,spectrum:spec,dynamic:dyn,stereo:st};
+
+    sp(90,'Rendering...');
+    renderMetrics('aMetrics',data);
+    document.getElementById('aMetricsSec').classList.add('on');
+    document.getElementById('aChartsSec').classList.add('on');
+    await yieldUI();
+    drawSpectrum('aSpectrum',spec,'cyan');
+    drawLufs('aLufs',lufs.shortTerm,COL.cyan);
+
+    sp(95,'Running synthwave mix check...');
+    const mixResult=runMixCheck(bandE,clip,mono,dyn,lufs,st);
+    document.getElementById('aMixTitle').textContent = currentStage==='mix' ? 'Synthwave Mix Check · Pre-Master' : 'Synthwave Mix Check · Mastered';
+    document.getElementById('aMixSec').classList.add('on');
+    await yieldUI();
+    renderMixCheck(mixResult.checks,mixResult.score);
+
+    sp(100,'Done.');setTimeout(()=>prog.classList.remove('on'),1500);
+  }catch(e){errEl.textContent='Error: '+e.message;errEl.classList.add('on');prog.classList.remove('on');}
+  btn.disabled=false;
+});
+
+// ═══════════════════════════════════════
+// COMPARE TAB — MAIN FLOW
+// ═══════════════════════════════════════
+
+document.getElementById('cBtnGo').addEventListener('click',async()=>{
+  const errEl=document.getElementById('errC');errEl.classList.remove('on');
+  const mf=document.getElementById('cMFile').files[0],rf=document.getElementById('cRFile').files[0];
+  if(!mf||!rf){errEl.textContent='Upload both tracks.';errEl.classList.add('on');return;}
+  const btn=document.getElementById('cBtnGo');btn.disabled=true;
+  const prog=document.getElementById('cProg'),pf=document.getElementById('cPFill'),pt=document.getElementById('cPTxt');
+  const sp=(p,t)=>{pf.style.width=p+'%';pt.textContent=t;};
+  prog.classList.add('on');
+  ['cMainSec','cRefSec','cCompSec'].forEach(id=>document.getElementById(id).classList.remove('on'));
+
+  try{
+    sp(5,'Decoding your track...');const mBuf=await decode(mf);
+    sp(12,'Analyzing your track...');
+    const mBPM=await detectBPM(mBuf),mKey=await detectKey(mBuf);
+    sp(25,'Your LUFS...');const mLufs=await calcLUFS(mBuf);
+    sp(35,'Your spectrum...');const mSpec=await analyzeSpectrum(mBuf);
+    const mDyn=await analyzeDynamic(mBuf),mSt=await analyzeStereo(mBuf);
+    const mData={bpm:mBPM,key:mKey,lufs:mLufs,spectrum:mSpec,dynamic:mDyn,stereo:mSt};
+
+    sp(50,'Decoding reference...');const rBuf=await decode(rf);
+    sp(58,'Analyzing reference...');
+    const rBPM=await detectBPM(rBuf),rKey=await detectKey(rBuf);
+    sp(68,'Reference LUFS...');const rLufs=await calcLUFS(rBuf);
+    sp(78,'Reference spectrum...');const rSpec=await analyzeSpectrum(rBuf);
+    const rDyn=await analyzeDynamic(rBuf),rSt=await analyzeStereo(rBuf);
+    const rData={bpm:rBPM,key:rKey,lufs:rLufs,spectrum:rSpec,dynamic:rDyn,stereo:rSt};
+
+    sp(90,'Building comparison...');
+    renderMetrics('cMainMetrics',mData);
+    renderMetrics('cRefMetrics',rData,'pink');
+    document.getElementById('cMainSec').classList.add('on');
+    document.getElementById('cRefSec').classList.add('on');
+    document.getElementById('cCompSec').classList.add('on');
+    await yieldUI();
+    drawDualCurve('cCompSpec',mSpec,rSpec);drawDynComp('cCompDyn',mDyn,rDyn);drawStereoComp('cCompSt',mSt,rSt);drawDualLufs('cCompLufs',mLufs.shortTerm,rLufs.shortTerm);
+    document.getElementById('cSuggList').innerHTML=genCompSuggestions(mData,rData).map(s=>`<div class="sitem">${s}</div>`).join('');
+
+    sp(100,'Done.');setTimeout(()=>prog.classList.remove('on'),1500);
+  }catch(e){errEl.textContent='Error: '+e.message;errEl.classList.add('on');prog.classList.remove('on');}
+  btn.disabled=false;
+});
+</script>
+</body>
+</html>
