@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRANITA · Sound DNA Card</title>
+<link rel="icon" type="image/png" href="https://vincenzosalvia.wordpress.com/wp-content/uploads/2026/03/granita-audio-analyzer.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  @font-face{font-family:'Futura PT';src:local('Futura PT Bold'),local('Futura Bold'),local('Futura-Bold'),local('Futura');font-weight:700;font-style:normal;}
+
+  :root{
+    --bg:#020204;--card:rgba(30,30,30,0.9);--card-hover:rgba(30,30,30,0.95);
+    --border:rgba(75,85,99,0.5);--border-light:rgba(75,85,99,0.3);
+    --cyan:#10BADA;--cyan2:#267aaa;--pink:#ff7dab;
+    --text:#ffffff;--text-sec:#9ca3af;--text-muted:#6b7280;
+    --gray700-50:rgba(55,65,81,0.5);--gray700-30:rgba(55,65,81,0.3);
+    --radius-xl:0.75rem;--radius-2xl:1rem;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:"EB Garamond",Georgia,serif;line-height:1.6;min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-track{background:rgba(30,30,30,0.5);border-radius:10px;}
+  ::-webkit-scrollbar-thumb{background:rgba(100,100,100,0.5);border-radius:10px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(150,150,150,0.5);}
+
+  .navbar{height:4rem;background:var(--card);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  @media(max-width:640px){.navbar{height:3.5rem;padding:0 1rem;}}
+  .nav-brand{display:flex;align-items:center;gap:10px;}
+  .nav-logo{width:28px;height:28px;border-radius:6px;object-fit:contain;}
+  .nav-name{font-family:"Futura PT",Futura,-apple-system,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:17px;}
+  .nav-name span{color:var(--text-muted);font-weight:400;margin-left:4px;}
+
+  .container{max-width:700px;margin:0 auto;padding:2rem 1.5rem;}
+  @media(max-width:640px){.container{padding:1.5rem 1rem;}}
+
+  .page-header{text-align:center;margin-bottom:2rem;}
+  .page-title{font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:1.5rem;margin-bottom:0.25rem;}
+  .page-subtitle{font-size:1rem;color:var(--text-muted);}
+
+  .upload-zone{background:var(--card);backdrop-filter:blur(4px);border:1px dashed var(--gray700-50);border-radius:var(--radius-2xl);padding:2rem 1.5rem;text-align:center;cursor:pointer;transition:all 300ms;box-shadow:0 10px 15px -3px rgba(0,0,0,0.3);margin-bottom:1.5rem;}
+  .upload-zone:hover{background:var(--card-hover);border-color:var(--cyan);box-shadow:0 20px 25px -5px rgba(0,0,0,0.4);transform:scale(1.02);}
+  .upload-zone.has-file{border-style:solid;border-color:var(--cyan);background:var(--card-hover);}
+  .upload-zone input{display:none;}
+  .uz-icon{width:48px;height:48px;border-radius:50%;background:rgba(16,186,218,0.12);color:var(--cyan);display:inline-flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:1rem;}
+  .uz-label{font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:0.9rem;margin-bottom:0.25rem;}
+  .uz-hint{font-size:0.95rem;color:var(--text-muted);}
+  .uz-fname{font-family:"JetBrains Mono",monospace;font-size:0.8rem;color:var(--cyan);margin-top:0.75rem;word-break:break-all;}
+
+  .fields{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+  @media(max-width:640px){.fields{grid-template-columns:1fr;}}
+  .field-full{margin-bottom:1.5rem;}
+  .flabel{font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:0.4rem;display:block;}
+  .finput{width:100%;padding:0.85rem 1rem;border-radius:var(--radius-xl);background:rgba(55,65,81,0.7);color:var(--text);font-family:"EB Garamond",Georgia,serif;font-size:1rem;border:1px solid rgba(75,85,99,0.5);outline:none;transition:all 200ms;}
+  .finput:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(16,186,218,0.2);}
+  .finput::placeholder{color:var(--text-muted);}
+
+  .format-bar{text-align:center;margin-bottom:1.5rem;}
+  .fmt-toggle{display:inline-flex;background:var(--card);border:1px solid var(--gray700-50);border-radius:var(--radius-xl);overflow:hidden;backdrop-filter:blur(4px);}
+  .fmt-btn{font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:0.75rem;color:var(--text-muted);background:transparent;border:none;padding:0.7rem 1.5rem;cursor:pointer;transition:all 200ms;}
+  .fmt-btn:hover{color:var(--text-sec);}
+  .fmt-btn.active{color:#000;background:linear-gradient(to right,#10BADA,#267aaa);box-shadow:0 0 12px rgba(16,186,218,0.25);}
+
+  .btn{display:block;width:100%;padding:1rem 2rem;font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:0.85rem;color:white;background:linear-gradient(to right,#10BADA,#267aaa);border:none;border-radius:var(--radius-xl);cursor:pointer;transition:all 300ms;box-shadow:0 10px 15px -3px rgba(0,0,0,0.3);margin-bottom:1.5rem;}
+  .btn:hover{background:linear-gradient(to right,#267aaa,#10BADA);box-shadow:0 20px 25px -5px rgba(0,0,0,0.4);transform:scale(1.02);}
+  .btn:disabled{opacity:0.3;cursor:not-allowed;transform:none;box-shadow:none;}
+
+  .progress{margin:0 auto 1.5rem;display:none;}
+  .progress.on{display:block;}
+  .pbar{width:100%;height:3px;background:var(--gray700-30);border-radius:10px;overflow:hidden;}
+  .pfill{height:100%;background:linear-gradient(to right,#10BADA,#267aaa);width:0%;transition:width 300ms;}
+  .ptxt{font-family:"JetBrains Mono",monospace;font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:0.5rem;}
+
+  .error-box{background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.3);border-radius:var(--radius-xl);padding:1rem 1.25rem;color:#f87171;font-size:0.9rem;margin-bottom:1.5rem;display:none;}
+  .error-box.on{display:block;}
+
+  .section{display:none;}.section.on{display:block;}
+
+  .preview-wrap{display:flex;justify-content:center;margin-bottom:1.5rem;background:repeating-conic-gradient(rgba(255,255,255,0.03) 0% 25%,transparent 0% 50%) 0 0/20px 20px;border-radius:var(--radius-2xl);padding:1.5rem;border:1px solid var(--border);}
+  .preview-wrap canvas{max-width:100%;height:auto;border-radius:4px;box-shadow:0 20px 40px rgba(0,0,0,0.5);}
+
+  .footer{text-align:center;margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border-light);font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-size:0.7rem;font-weight:700;color:var(--text-muted);}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-brand">
+    <img class="nav-logo" src="https://vincenzosalvia.wordpress.com/wp-content/uploads/2026/03/granita-audio-analyzer.png" alt="GRANITA">
+    <span class="nav-name">GRANITA.<span>Sound DNA</span></span>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="page-header">
+    <h1 class="page-title">Sound DNA Card</h1>
+    <p class="page-subtitle">Generate the sonic identity of your track</p>
+  </div>
+
+  <div class="error-box" id="err"></div>
+
+  <div class="upload-zone" id="uZone" onclick="document.getElementById('uFile').click()">
+    <input type="file" id="uFile" accept="audio/*,.wav,.mp3,.flac,.ogg,.aac,.m4a">
+    <div class="uz-icon">🧬</div>
+    <div class="uz-label">Upload Track</div>
+    <div class="uz-hint">WAV, MP3, FLAC, OGG — drop or click</div>
+    <div class="uz-fname" id="uName"></div>
+  </div>
+
+  <div class="fields">
+    <div>
+      <label class="flabel">Artist Name</label>
+      <input type="text" class="finput" id="fArtist" placeholder="e.g. Vincenzo Salvia">
+    </div>
+    <div>
+      <label class="flabel">Track Title</label>
+      <input type="text" class="finput" id="fTitle" placeholder="e.g. Neon Midnight">
+    </div>
+  </div>
+
+  <div class="field-full">
+    <label class="flabel">Custom Text (optional)</label>
+    <input type="text" class="finput" id="fCustom" placeholder="e.g. Out Now on all platforms">
+  </div>
+
+  <div class="format-bar">
+    <div class="flabel" style="margin-bottom:0.5rem">Export Format</div>
+    <div class="fmt-toggle">
+      <button class="fmt-btn active" id="f45" onclick="setFmt('4:5')">4:5</button>
+      <button class="fmt-btn" id="f916" onclick="setFmt('9:16')">9:16</button>
+      <button class="fmt-btn" id="f11" onclick="setFmt('1:1')">1:1</button>
+      <button class="fmt-btn" id="f169" onclick="setFmt('16:9')">16:9</button>
+    </div>
+  </div>
+
+  <button class="btn" id="goBtn" disabled>🧬 Generate Sound DNA</button>
+  <div class="progress" id="prog"><div class="pbar"><div class="pfill" id="pFill"></div></div><div class="ptxt" id="pTxt">Decoding...</div></div>
+
+  <div class="section" id="previewSec">
+    <div class="preview-wrap"><canvas id="dnaCanvas"></canvas></div>
+    <button class="btn" onclick="exportCard()">⬇ Download PNG</button>
+  </div>
+
+  <div class="footer">GRANITA · Vincenzo Salvia Music Studio</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// GRANITA — SOUND DNA CARD (standalone)
+// ═══════════════════════════════════════
+
+let fmt='4:5';
+const SIZES={'4:5':{w:1080,h:1350},'9:16':{w:1080,h:1920},'1:1':{w:1080,h:1080},'16:9':{w:1920,h:1080}};
+const yieldUI=()=>new Promise(r=>setTimeout(r,0));
+
+function setFmt(f){
+  fmt=f;
+  document.querySelectorAll('.fmt-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById({'4:5':'f45','9:16':'f916','1:1':'f11','16:9':'f169'}[f]).classList.add('active');
+}
+
+// Upload
+const fileEl=document.getElementById('uFile');
+const zone=document.getElementById('uZone');
+fileEl.onchange=e=>{if(e.target.files[0]){document.getElementById('uName').textContent=e.target.files[0].name;zone.classList.add('has-file');document.getElementById('goBtn').disabled=false;}};
+zone.ondragover=e=>{e.preventDefault();zone.style.borderColor='#10BADA';};
+zone.ondragleave=()=>{zone.style.borderColor='';};
+zone.ondrop=e=>{e.preventDefault();zone.style.borderColor='';const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);fileEl.files=dt.files;fileEl.dispatchEvent(new Event('change'));}};
+
+async function decode(file){const ctx=new(window.AudioContext||window.webkitAudioContext)();const ab=await file.arrayBuffer();const buf=await ctx.decodeAudioData(ab);await ctx.close();return buf;}
+
+function getMono(buf){if(buf.numberOfChannels===1)return buf.getChannelData(0);const L=buf.getChannelData(0),R=buf.getChannelData(1),m=new Float32Array(L.length);for(let i=0;i<L.length;i++)m[i]=(L[i]+R[i])*0.5;return m;}
+
+function drawCard(buf){
+  const {w,h}=SIZES[fmt];
+  const canvas=document.getElementById('dnaCanvas');
+  canvas.width=w;canvas.height=h;
+  const ctx=canvas.getContext('2d');
+  const artist=document.getElementById('fArtist').value.trim()||'Artist';
+  const title=document.getElementById('fTitle').value.trim()||'Track';
+  const custom=document.getElementById('fCustom').value.trim();
+
+  // Background
+  const bg=ctx.createRadialGradient(w*0.5,h*0.45,0,w*0.5,h*0.45,w*0.7);
+  bg.addColorStop(0,'#0a0e14');bg.addColorStop(0.5,'#050608');bg.addColorStop(1,'#020204');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+
+  // Noise
+  for(let i=0;i<w*h*0.003;i++){ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.02})`;ctx.fillRect(Math.random()*w,Math.random()*h,1,1);}
+
+  // Waveform
+  const mono=getMono(buf);const sr=buf.sampleRate;
+  const mx=w*0.08,wW=w-mx*2,cY=h*0.48,mH=h*0.28;
+  const bc=Math.min(Math.round(wW/3),400),spb=Math.floor(mono.length/bc);
+  const bars=[];let peak=0;
+  for(let i=0;i<bc;i++){let s=0;const o=i*spb;for(let j=0;j<spb;j++)s+=mono[o+j]*mono[o+j];const r=Math.sqrt(s/spb);bars.push(r);if(r>peak)peak=r;}
+  if(peak>0)for(let i=0;i<bc;i++)bars[i]/=peak;
+  const bW=wW/bc,bG=Math.max(0.5,bW*0.15);
+
+  // Glow
+  ctx.save();ctx.shadowColor='rgba(16,186,218,0.4)';ctx.shadowBlur=12;
+  for(let i=0;i<bc;i++){const x=mx+i*bW,bH=Math.max(1,bars[i]*mH),t=bars[i];ctx.fillStyle=`rgba(${16+t*50|0},${186-t*30|0},${218-t*10|0},0.6)`;ctx.fillRect(x,cY-bH,bW-bG,bH*2);}
+  ctx.restore();
+
+  // Sharp bars
+  for(let i=0;i<bc;i++){const x=mx+i*bW,bH=Math.max(1,bars[i]*mH),t=bars[i];
+    const g=ctx.createLinearGradient(x,cY-bH,x,cY+bH);
+    g.addColorStop(0,`rgba(16,${200-t*40|0},${230-t*20|0},${0.5+t*0.5})`);
+    g.addColorStop(0.5,`rgba(16,186,218,${0.7+t*0.3})`);
+    g.addColorStop(1,`rgba(16,${200-t*40|0},${230-t*20|0},${0.5+t*0.5})`);
+    ctx.fillStyle=g;ctx.fillRect(x,cY-bH,bW-bG,bH*2);
+  }
+
+  // Center line + rules
+  ctx.strokeStyle='rgba(16,186,218,0.15)';ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(mx,cY);ctx.lineTo(mx+wW,cY);ctx.stroke();
+  ctx.strokeStyle='rgba(16,186,218,0.08)';
+  [cY-mH-h*0.06,cY+mH+h*0.06].forEach(y=>{ctx.beginPath();ctx.moveTo(mx,y);ctx.lineTo(mx+wW,y);ctx.stroke();});
+
+  // Artist
+  const wide=fmt==='16:9';
+  const aS=wide?w*0.04:w*0.065;
+  ctx.font=`700 ${aS}px "Futura PT",Futura,Helvetica,Arial,sans-serif`;
+  ctx.fillStyle='#ffffff';ctx.textAlign='center';
+  ctx.fillText(artist.toUpperCase(),w/2,h*0.12);
+
+  // Title
+  const tS=wide?w*0.022:w*0.035;
+  ctx.font=`italic 400 ${tS}px "EB Garamond",Georgia,serif`;
+  ctx.fillStyle='rgba(16,186,218,0.8)';
+  ctx.fillText(`\u201C${title}\u201D`,w/2,h*0.12+aS*0.8);
+
+  // 1. Custom text
+  if(custom){
+    const ctS=wide?w*0.016:w*0.025;
+    ctx.font=`italic 400 ${ctS}px "EB Garamond",Georgia,serif`;
+    ctx.fillStyle='#ffffff';ctx.textAlign='center';
+    ctx.fillText(custom,w/2,h*0.84);
+  }
+
+  // 2. SOUND DNA · Powered by GRANITA
+  const lS=wide?w*0.011:w*0.017;
+  ctx.font=`700 ${lS}px "Futura PT",Futura,Helvetica,Arial,sans-serif`;
+  ctx.fillStyle='rgba(16,186,218,0.4)';ctx.textAlign='center';
+  ctx.fillText('SOUND DNA \u00B7 Powered by GRANITA',w/2,h*0.92);
+
+  // 3. VINCENZO SALVIA MUSIC STUDIO
+  const brS=wide?w*0.009:w*0.015;
+  ctx.font=`700 ${brS}px "Futura PT",Futura,Helvetica,Arial,sans-serif`;
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.fillText('VINCENZO SALVIA MUSIC STUDIO',w/2,h*0.92+lS*1.4);
+
+  document.getElementById('previewSec').classList.add('on');
+}
+
+function exportCard(){
+  const canvas=document.getElementById('dnaCanvas');
+  const a=document.getElementById('fArtist').value.trim()||'Artist';
+  const t=document.getElementById('fTitle').value.trim()||'Track';
+  const link=document.createElement('a');
+  link.download=`SoundDNA_${a.replace(/\s+/g,'_')}_${t.replace(/\s+/g,'_')}_${fmt.replace(':','x')}.png`;
+  link.href=canvas.toDataURL('image/png');link.click();
+}
+
+document.getElementById('goBtn').addEventListener('click',async()=>{
+  const errEl=document.getElementById('err');errEl.classList.remove('on');
+  const f=fileEl.files[0];
+  if(!f){errEl.textContent='Upload a track first.';errEl.classList.add('on');return;}
+  const btn=document.getElementById('goBtn');btn.disabled=true;
+  const prog=document.getElementById('prog'),pf=document.getElementById('pFill'),pt=document.getElementById('pTxt');
+  const sp=(p,t)=>{pf.style.width=p+'%';pt.textContent=t;};
+  prog.classList.add('on');
+  document.getElementById('previewSec').classList.remove('on');
+  try{
+    sp(20,'Decoding audio...');const buf=await decode(f);
+    sp(60,'Generating Sound DNA...');await yieldUI();
+    drawCard(buf);
+    sp(100,'Done.');setTimeout(()=>prog.classList.remove('on'),1000);
+  }catch(e){errEl.textContent='Error: '+e.message;errEl.classList.add('on');prog.classList.remove('on');}
+  btn.disabled=false;
+});
+</script>
+</body>
+</html>

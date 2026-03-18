@@ -163,6 +163,29 @@
   .stage-btn:hover{color:var(--text-sec);}
   .stage-btn.active{color:#000;background:linear-gradient(to right,#10BADA,#267aaa);box-shadow:0 0 12px rgba(16,186,218,0.25);}
 
+  /* DNA CARD */
+  .dna-form{max-width:500px;margin:0 auto;}
+  .dna-fields{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;}
+  @media(max-width:640px){.dna-fields{grid-template-columns:1fr;}}
+  .dna-field{}
+  .dna-label{font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-size:0.7rem;font-weight:700;color:var(--text-muted);margin-bottom:0.4rem;display:block;}
+  .dna-input{
+    width:100%;padding:0.85rem 1rem;border-radius:var(--radius-xl);
+    background:rgba(55,65,81,0.7);color:var(--text);
+    font-family:"EB Garamond",Georgia,serif;font-size:1rem;
+    border:1px solid rgba(75,85,99,0.5);outline:none;transition:all 200ms;
+  }
+  .dna-input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(16,186,218,0.2);}
+  .dna-input::placeholder{color:var(--text-muted);}
+  .dna-format-bar{text-align:center;margin-bottom:1.5rem;}
+  .dna-preview-wrap{
+    display:flex;justify-content:center;margin-bottom:1.5rem;
+    background:repeating-conic-gradient(rgba(255,255,255,0.03) 0% 25%, transparent 0% 50%) 0 0 / 20px 20px;
+    border-radius:var(--radius-2xl);padding:1.5rem;border:1px solid var(--border);
+  }
+  .dna-preview-wrap canvas{max-width:100%;height:auto;border-radius:4px;box-shadow:0 20px 40px rgba(0,0,0,0.5);}
+  .dna-export-btn{margin-top:0;}
+
   .footer{text-align:center;margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border-light);font-family:"Futura PT",Futura,sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-size:0.7rem;font-weight:700;color:var(--text-muted);}
 </style>
 </head>
@@ -181,6 +204,7 @@
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('analyze')"><span class="tab-icon">🎛</span> Analyze</button>
     <button class="tab-btn" onclick="switchTab('compare')"><span class="tab-icon">⚖</span> Compare</button>
+    <button class="tab-btn" onclick="switchTab('dna')"><span class="tab-icon">🧬</span> Sound DNA</button>
   </div>
 
   <!-- ═══════════════════════════════ -->
@@ -289,6 +313,61 @@
         <canvas id="cCompLufs" height="150"></canvas>
       </div>
       <div class="suggestions-box"><div class="sugg-title">⚡ Mastering Suggestions</div><div id="cSuggList"></div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ -->
+  <!-- SOUND DNA TAB -->
+  <!-- ═══════════════════════════════ -->
+  <div class="tab-panel" id="tab-dna">
+    <div class="error-box" id="errD"></div>
+
+    <div class="dna-form">
+      <div class="upload-single">
+        <div class="upload-zone" id="dZone" onclick="document.getElementById('dFile').click()">
+          <input type="file" id="dFile" accept="audio/*,.wav,.mp3,.flac,.ogg,.aac,.m4a">
+          <div class="uz-icon">🧬</div>
+          <div class="uz-label">Upload Track</div>
+          <div class="uz-hint">The track for your Sound DNA Card</div>
+          <div class="uz-fname" id="dName"></div>
+        </div>
+      </div>
+
+      <div class="dna-fields">
+        <div class="dna-field">
+          <label class="dna-label">Artist Name</label>
+          <input type="text" class="dna-input" id="dArtist" placeholder="e.g. Vincenzo Salvia">
+        </div>
+        <div class="dna-field">
+          <label class="dna-label">Track Title</label>
+          <input type="text" class="dna-input" id="dTitle" placeholder="e.g. Neon Midnight">
+        </div>
+      </div>
+      <div class="dna-field" style="max-width:500px;margin:0 auto 1.5rem;">
+        <label class="dna-label">Custom Text (optional)</label>
+        <input type="text" class="dna-input" id="dCustom" placeholder="e.g. Out Now on all platforms">
+      </div>
+
+      <div class="dna-format-bar">
+        <div class="dna-label" style="margin-bottom:0.5rem">Export Format</div>
+        <div class="stage-toggle">
+          <button class="stage-btn active" id="fmt45" onclick="setDnaFormat('4:5')">4:5</button>
+          <button class="stage-btn" id="fmt916" onclick="setDnaFormat('9:16')">9:16</button>
+          <button class="stage-btn" id="fmt11" onclick="setDnaFormat('1:1')">1:1</button>
+          <button class="stage-btn" id="fmt169" onclick="setDnaFormat('16:9')">16:9</button>
+        </div>
+      </div>
+
+      <button class="btn" id="dBtnGo" disabled>🧬 Generate Sound DNA</button>
+      <div class="progress" id="dProg"><div class="pbar"><div class="pfill" id="dPFill"></div></div><div class="ptxt" id="dPTxt">Decoding...</div></div>
+    </div>
+
+    <!-- Preview -->
+    <div class="section" id="dPreviewSec">
+      <div class="dna-preview-wrap">
+        <canvas id="dnaCanvas"></canvas>
+      </div>
+      <button class="btn dna-export-btn" id="dExportBtn" onclick="exportDnaCard()">⬇ Download PNG</button>
     </div>
   </div>
 
@@ -986,6 +1065,131 @@ document.getElementById('cBtnGo').addEventListener('click',async()=>{
     document.getElementById('cSuggList').innerHTML=genCompSuggestions(mData,rData).map(s=>`<div class="sitem">${s}</div>`).join('');
 
     sp(100,'Done.');setTimeout(()=>prog.classList.remove('on'),1500);
+  }catch(e){errEl.textContent='Error: '+e.message;errEl.classList.add('on');prog.classList.remove('on');}
+  btn.disabled=false;
+});
+
+// ═══════════════════════════════════════
+// SOUND DNA CARD
+// ═══════════════════════════════════════
+
+let dnaFormat = '4:5';
+const DNA_SIZES = {'4:5':{w:1080,h:1350},'9:16':{w:1080,h:1920},'1:1':{w:1080,h:1080},'16:9':{w:1920,h:1080}};
+
+function setDnaFormat(fmt){
+  dnaFormat=fmt;
+  document.querySelectorAll('.dna-format-bar .stage-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById({'4:5':'fmt45','9:16':'fmt916','1:1':'fmt11','16:9':'fmt169'}[fmt]).classList.add('active');
+}
+
+setupUpload('dZone','dFile','dName');
+document.getElementById('dFile').addEventListener('change',()=>{document.getElementById('dBtnGo').disabled=!document.getElementById('dFile').files[0];});
+
+function drawDnaCard(buf, artist, title){
+  const {w,h}=DNA_SIZES[dnaFormat];
+  const canvas=document.getElementById('dnaCanvas');
+  canvas.width=w; canvas.height=h;
+  const ctx=canvas.getContext('2d');
+
+  // Background
+  const bg=ctx.createRadialGradient(w*0.5,h*0.45,0,w*0.5,h*0.45,w*0.7);
+  bg.addColorStop(0,'#0a0e14');bg.addColorStop(0.5,'#050608');bg.addColorStop(1,'#020204');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+
+  // Noise grain
+  for(let i=0;i<w*h*0.003;i++){ctx.fillStyle=`rgba(255,255,255,${Math.random()*0.02})`;ctx.fillRect(Math.random()*w,Math.random()*h,1,1);}
+
+  // Waveform data
+  const mono=getMono(buf);const sr=buf.sampleRate;
+  const mx=w*0.08, wW=w-mx*2, cY=h*0.48, mH=h*0.28;
+  const bc=Math.min(Math.round(wW/3),400), spb=Math.floor(mono.length/bc);
+  const bars=[];let peak=0;
+  for(let i=0;i<bc;i++){let s=0;const o=i*spb;for(let j=0;j<spb;j++)s+=mono[o+j]*mono[o+j];const r=Math.sqrt(s/spb);bars.push(r);if(r>peak)peak=r;}
+  if(peak>0)for(let i=0;i<bc;i++)bars[i]/=peak;
+  const bW=wW/bc, bG=Math.max(0.5,bW*0.15);
+
+  // Glow
+  ctx.save();ctx.shadowColor='rgba(16,186,218,0.4)';ctx.shadowBlur=12;
+  for(let i=0;i<bc;i++){const x=mx+i*bW,bH=Math.max(1,bars[i]*mH),t=bars[i];ctx.fillStyle=`rgba(${16+t*50|0},${186-t*30|0},${218-t*10|0},0.6)`;ctx.fillRect(x,cY-bH,bW-bG,bH*2);}
+  ctx.restore();
+
+  // Sharp bars
+  for(let i=0;i<bc;i++){const x=mx+i*bW,bH=Math.max(1,bars[i]*mH),t=bars[i];
+    const g=ctx.createLinearGradient(x,cY-bH,x,cY+bH);
+    g.addColorStop(0,`rgba(16,${200-t*40|0},${230-t*20|0},${0.5+t*0.5})`);
+    g.addColorStop(0.5,`rgba(16,186,218,${0.7+t*0.3})`);
+    g.addColorStop(1,`rgba(16,${200-t*40|0},${230-t*20|0},${0.5+t*0.5})`);
+    ctx.fillStyle=g;ctx.fillRect(x,cY-bH,bW-bG,bH*2);
+  }
+
+  // Center line + rules
+  ctx.strokeStyle='rgba(16,186,218,0.15)';ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(mx,cY);ctx.lineTo(mx+wW,cY);ctx.stroke();
+  ctx.strokeStyle='rgba(16,186,218,0.08)';
+  [cY-mH-h*0.06, cY+mH+h*0.06].forEach(y=>{ctx.beginPath();ctx.moveTo(mx,y);ctx.lineTo(mx+wW,y);ctx.stroke();});
+
+  // Artist
+  const wide=dnaFormat==='16:9';
+  const aS=wide?w*0.04:w*0.065;
+  ctx.font=`700 ${aS}px "Futura PT",Futura,Helvetica,Arial,sans-serif`;
+  ctx.fillStyle='#ffffff';ctx.textAlign='center';
+  ctx.fillText(artist.toUpperCase(),w/2,h*0.12);
+
+  // Title
+  const tS=wide?w*0.022:w*0.035;
+  ctx.font=`italic 400 ${tS}px "EB Garamond",Georgia,serif`;
+  ctx.fillStyle='rgba(16,186,218,0.8)';
+  ctx.fillText(`\u201C${title}\u201D`,w/2,h*0.12+aS*0.8);
+
+  // 1. Custom text — priority, white like artist name, well spaced from bottom block
+  const customText=document.getElementById('dCustom').value.trim();
+  if(customText){
+    const ctS=wide?w*0.016:w*0.025;
+    ctx.font=`italic 400 ${ctS}px "EB Garamond",Georgia,serif`;
+    ctx.fillStyle='#ffffff';ctx.textAlign='center';
+    ctx.fillText(customText,w/2,h*0.84);
+  }
+
+  // 2. SOUND DNA · Powered by GRANITA
+  const lS=wide?w*0.011:w*0.017;
+  ctx.font=`700 ${lS}px "Futura PT",Futura,Helvetica,Arial,sans-serif`;
+  ctx.fillStyle='rgba(16,186,218,0.4)';ctx.textAlign='center';
+  ctx.fillText('SOUND DNA \u00B7 Powered by GRANITA',w/2,h*0.92);
+
+  // 3. VINCENZO SALVIA MUSIC STUDIO (tight under 2)
+  const brS=wide?w*0.009:w*0.015;
+  ctx.font=`700 ${brS}px "Futura PT",Futura,Helvetica,Arial,sans-serif`;
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.fillText('VINCENZO SALVIA MUSIC STUDIO',w/2,h*0.92+lS*1.4);
+
+  document.getElementById('dPreviewSec').classList.add('on');
+}
+
+function exportDnaCard(){
+  const canvas=document.getElementById('dnaCanvas');
+  const a=document.getElementById('dArtist').value.trim()||'Artist';
+  const t=document.getElementById('dTitle').value.trim()||'Track';
+  const link=document.createElement('a');
+  link.download=`SoundDNA_${a.replace(/\s+/g,'_')}_${t.replace(/\s+/g,'_')}_${dnaFormat.replace(':','x')}.png`;
+  link.href=canvas.toDataURL('image/png');link.click();
+}
+
+document.getElementById('dBtnGo').addEventListener('click',async()=>{
+  const errEl=document.getElementById('errD');errEl.classList.remove('on');
+  const f=document.getElementById('dFile').files[0];
+  if(!f){errEl.textContent='Upload a track first.';errEl.classList.add('on');return;}
+  const artist=document.getElementById('dArtist').value.trim()||'Artist';
+  const title=document.getElementById('dTitle').value.trim()||'Track';
+  const btn=document.getElementById('dBtnGo');btn.disabled=true;
+  const prog=document.getElementById('dProg'),pf=document.getElementById('dPFill'),pt=document.getElementById('dPTxt');
+  const sp=(p,t)=>{pf.style.width=p+'%';pt.textContent=t;};
+  prog.classList.add('on');
+  document.getElementById('dPreviewSec').classList.remove('on');
+  try{
+    sp(20,'Decoding audio...');const buf=await decode(f);
+    sp(60,'Generating Sound DNA...');await yieldUI();
+    drawDnaCard(buf,artist,title);
+    sp(100,'Done.');setTimeout(()=>prog.classList.remove('on'),1000);
   }catch(e){errEl.textContent='Error: '+e.message;errEl.classList.add('on');prog.classList.remove('on');}
   btn.disabled=false;
 });
